@@ -3,13 +3,15 @@ import {
 	View,
 	TextInput,
 	Image,
+	StyleSheet,
 	TouchableOpacity,
-	StyleSheet
 } from "react-native";
 
 import Layout from "../constants/Layout";
 import Theme from "../constants/Theme";
 import FontSize from "../constants/FontSize";
+
+import bind from "../redux/bind";
 
 class FormField extends React.Component {
 	constructor(props) {
@@ -108,4 +110,41 @@ const styles=StyleSheet.create({
 	},
 });
 
-export default FormField;
+const verify = {
+	name: (text) => {
+		text = text.trim();
+		let error = "";
+		if (text === "") error = "Name cannot be empty!";
+		return {
+			text,
+			error,
+		};
+	},
+	phone: (text, signInMethod) => {
+		text = text.trim();
+		let error = "";
+		if (signInMethod === "EMAIL") {
+			if (text === "") error = "Phone no. cannot be empty!";
+			if (!RegExp(/^\d{10}$/).test(text)) error = "Phone no. must consist of exactly 10 digits.";
+		}
+		return {
+			text,
+			error,
+		};
+	},
+	email: (text) => {
+		text = text.trim();
+		let error = "";
+		if (text === "") error = "Email cannot be empty!";
+		if (!RegExp(
+				/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/)
+				.test(text)) error = "Invalid email format. Kindly make sure the email is typed correctly.";
+		return {
+			text,
+			error,
+		};
+	},
+};
+
+export default bind(FormField);
+export { verify };

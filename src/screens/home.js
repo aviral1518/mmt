@@ -13,15 +13,12 @@ import AppText from "../components/AppText";
 import Layout from "../constants/Layout";
 import Theme from "../constants/Theme";
 import FontSize from "../constants/FontSize";
-import auth from '@react-native-firebase/auth';
 
 export default function home({ navigation }) {
 
   const width = useWindowDimensions().width;
   const height = width * 0.6;
 
-  const [initializing, setInitializing] = useState(true);
-  const [user, setUser] = useState();
   const [active, setActive] = useState(0);
 
   const images = [
@@ -60,22 +57,6 @@ export default function home({ navigation }) {
     }
   };
 
-  function onAuthStateChanged(user) {
-    setUser(user);
-    if (initializing) setInitializing(false);
-  }
-
-  useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
-    return subscriber; // unsubscribe on unmount
-  }, []);
-
-  if (initializing) return null;
-
-  if (!user) {
-    return navigation.navigate('login');
-  }
-
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -83,16 +64,16 @@ export default function home({ navigation }) {
         style={styles.headerContainer}
       >
         <View style={styles.header}>
-          <AppText style={styles.screenTitle}> Hello, {user.email} </AppText>
           <TouchableOpacity
-            style={[styles.headerIconContainer, styles.myLogoutContainer]}
-            onPress={() => { auth().signOut() }}
+            onPress={() => navigation.openDrawer()}
+            style={styles.headerIconContainer}
           >
             <Image
-              source={require("../assets/img/logout.png")}
+              source={require("../assets/img/menu.png")}
               style={styles.headerIcon}
             />
           </TouchableOpacity>
+          <AppText style={styles.screenTitle}> Home</AppText>
         </View>
       </LinearGradient>
       <ScrollView
@@ -120,26 +101,21 @@ export default function home({ navigation }) {
   );
 }
 
-home.navigationOptions = ({ navigation }) => ({
-  title: 'Home',
-  headerShown: false,
-});
-
 const styles = StyleSheet.create({
   container: {
     flex: 1
   },
   headerContainer: {
     justifyContent: "flex-start",
-    height: 70 * Layout.ratio,
+    height: 90 * Layout.ratio,
     paddingHorizontal: 20,
     paddingTop: Layout.statusBarHeight,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    height: 10 * Layout.ratio,
-    marginTop: 10 * Layout.ratio,
+    height: 30 * Layout.ratio,
+    marginTop: 15 * Layout.ratio,
   },
   headerIconContainer: {
     height: 26 * Layout.ratio,
@@ -156,7 +132,7 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
   },
   screenTitle: {
-    fontSize: FontSize[10],
+    fontSize: FontSize[15],
     fontWeight: "bold",
     color: Theme.bright,
     marginLeft: 16 * Layout.ratio,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import {
 	ScrollView,
@@ -9,7 +9,6 @@ import {
 	StyleSheet
 } from "react-native";
 import LinearGradient from 'react-native-linear-gradient';
-import auth from '@react-native-firebase/auth';
 import AppText from "../components/AppText";
 import FormField from "../components/FormField";
 import Button from "../components/Button";
@@ -17,126 +16,125 @@ import Button from "../components/Button";
 import Layout from "../constants/Layout";
 import Theme from "../constants/Theme";
 import FontSize from "../constants/FontSize";
+import bind from "../redux/bind";
+import { signIn } from "../helpers/authentication";
 
 const HEIGHT = 220 * Layout.ratio;
 const DIMENSION = 2000;
 
-export default function login({ navigation }) {
+class login extends React.Component {
+	constructor(props) {
+		super(props);
 
-	const [email, setEmail] = useState('');
-	const [password, setPassword] = useState('');
-	const [showLoading, setShowLoading] = useState(false);
+		this.state = {
+			email: "",
+			password: "",
+			processing: false,
+		};
+	}
 
-	const login = async () => {
-		if (email == '' || password == '') {
-			Alert.alert("Error", "Email or password is empty.")
-		}
-		else {
-			setShowLoading(true);
-			try {
-				const doLogin = await auth().signInWithEmailAndPassword(email, password);
-				setShowLoading(false);
-				if (doLogin.user) {
-					navigation.navigate('home');
-				}
-			} catch (e) {
-				setShowLoading(false);
-				Alert.alert(
-					e.message
-				);
-			}
-		}
-	};
-	return (
-		<SafeAreaInsetsContext.Consumer>
-			{(insets) => (
-				<ScrollView style={{ flex: 1, backgroundColor: Theme.bright, }}>
-					<View style={styles.curvedHeaderContainer}>
-						<LinearGradient
-							colors={[Theme.gradient.start, Theme.gradient.end]}
-							style={[styles.headerContainer, { paddingTop: insets.top, }]}
-						>
-							<Image source={require("../assets/img/logo.png")} style={styles.headerLogo} />
-							<AppText style={styles.screenTitle}>Welcome</AppText>
-						</LinearGradient>
-					</View>
-					<View style={[
-						styles.formContainer,
-						{
-							paddingTop: HEIGHT + 26 * Layout.ratio,
-							paddingBottom: insets.bottom + 20 * Layout.ratio,
+	async handleLogin(info) {
+		const {
+			authenticateUser,
+		} = this.props;
+
+		const data = {
+			...this.state,
+			...info,
+		};
+
+		this.setState({ processing: true });
+		await signIn(data, authenticateUser, this.props.navigation);
+		this.setState({ processing: false });
+	}
+
+	render() {
+		return (
+			<SafeAreaInsetsContext.Consumer>
+				{(insets) => (
+					<ScrollView style={{ flex: 1, backgroundColor: Theme.bright, }}>
+						<View style={styles.curvedHeaderContainer}>
+							<LinearGradient
+								colors={[Theme.gradient.start, Theme.gradient.end]}
+								style={[styles.headerContainer, { paddingTop: insets.top, }]}
+							>
+								<Image source={require("../assets/img/logo.png")} style={styles.headerLogo} />
+								<AppText style={styles.screenTitle}>Welcome</AppText>
+							</LinearGradient>
+						</View>
+						<View style={[
+							styles.formContainer,
+							{
+								paddingTop: HEIGHT + 26 * Layout.ratio,
+								paddingBottom: insets.bottom + 20 * Layout.ratio,
+							}
+						]}>
+							<FormField
+								style={styles.formField}
+								icon={
+									<Image
+										source={require("../assets/img/mail.png")}
+										style={[styles.formFieldIcon, { width: 20 * Layout.ratio }]}
+									/>
+								}
+								secureTextEntry={false}
+								onChangeText={(text) => this.setState({ email: text })}
+								value={this.state.email}
+								placeholder="Email"
+							/>
+							<FormField
+								style={styles.formField}
+								icon={
+									<Image
+										source={require("../assets/img/password.png")}
+										style={styles.formFieldIcon}
+									/>
+								}
+								secureTextEntry={true}
+								onChangeText={(text) => this.setState({ password: text })}
+								value={this.state.password}
+								placeholder="Password"
+							/>
+							<Button
+								style={styles.submitButton}
+								label="Login"
+								onPress={() => this.handleLogin({ signInMethod: "EMAIL" })}
+							/>
+							<View style={styles.horizontalBar} />
+							<View style={styles.footerContainer}>
+								<AppText style={styles.footerText}>
+									Don't have an account?
+									</AppText>
+								<AppText
+									style={styles.footerLink}
+									onPress={() => { this.props.navigation.jumpTo('Register') }}
+								>
+									Register here
+									</AppText>
+							</View>
+							<View style={styles.footerContainer}>
+								<AppText style={styles.footerText}>
+									Forget your Password?
+								</AppText>
+								<AppText
+									style={styles.footerLink}
+									onPress={() => { this.props.navigation.jumpTo('Reset') }}
+								>
+									Reset here
+								</AppText>
+							</View>
+						</View>
+						{this.state.processing &&
+							<View style={styles.activity}>
+								<ActivityIndicator size="large" color="#0000ff" />
+							</View>
 						}
-					]}>
-						<FormField
-							style={styles.formField}
-							icon={
-								<Image
-									source={require("../assets/img/mail.png")}
-									style={[styles.formFieldIcon, { width: 20 * Layout.ratio }]}
-								/>
-							}
-							secureTextEntry={false}
-							onChangeText={setEmail}
-							value={email}
-							placeholder="Email"
-						/>
-						<FormField
-							style={styles.formField}
-							icon={
-								<Image
-									source={require("../assets/img/password.png")}
-									style={styles.formFieldIcon}
-								/>
-							}
-							secureTextEntry={true}
-							onChangeText={setPassword}
-							value={password}
-							placeholder="Password"
-						/>
-						<Button
-							style={styles.submitButton}
-							label="Login"
-							onPress={() => login()}
-						/>
-						<View style={styles.horizontalBar} />
-						<View style={styles.footerContainer}>
-							<AppText style={styles.footerText}>
-								Don't have an account?
-								</AppText>
-							<AppText
-								style={styles.footerLink}
-								onPress={() => { navigation.navigate('register') }}
-							>
-								Register here
-								</AppText>
-						</View>
-						<View style={styles.footerContainer}>
-							<AppText style={styles.footerText}>
-								Forget your Password?
-								</AppText>
-							<AppText
-								style={styles.footerLink}
-								onPress={() => { navigation.navigate('reset') }}
-							>
-								Reset here
-								</AppText>
-						</View>
-					</View>
-					{showLoading &&
-						<View style={styles.activity}>
-							<ActivityIndicator size="large" color="#0000ff" />
-						</View>
-					}
-				</ScrollView>
-			)}
-		</SafeAreaInsetsContext.Consumer>
-	);
+					</ScrollView>
+				)}
+			</SafeAreaInsetsContext.Consumer>
+		);
+	}
 }
-
-login.navigationOptions = ({ navigation }) => ({
-	title: 'Login',
-	headerShown: false,
-});
 
 const styles = StyleSheet.create({
 	curvedHeaderContainer: {
@@ -219,7 +217,7 @@ const styles = StyleSheet.create({
 		color: Theme.primary,
 	},
 	activity: {
-		position: 'absolute',
+		//position: 'absolute',
 		left: 0,
 		right: 0,
 		top: 0,
@@ -228,3 +226,5 @@ const styles = StyleSheet.create({
 		justifyContent: 'center'
 	},
 });
+
+export default bind(login);

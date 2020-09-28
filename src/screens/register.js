@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import {
 	StyleSheet,
@@ -6,159 +6,216 @@ import {
 	View,
 	Image,
 	ActivityIndicator,
+	TouchableOpacity,
 	Alert
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import AppText from "../components/AppText";
+import ImagePicker from "react-native-image-picker";
 import FormField from "../components/FormField";
 import Button from "../components/Button";
-
+import auth from '@react-native-firebase/auth';
 import Layout from "../constants/Layout";
 import Theme from "../constants/Theme";
 import FontSize from "../constants/FontSize";
-import auth from '@react-native-firebase/auth';
+import bind from "../redux/bind";
+import { signUp } from "../helpers/authentication";
 
-export default function register({ navigation }) {
+class register extends React.Component {
+	constructor(props) {
+		super(props);
 
-	const [email, setEmail] = useState('');
-	const [name, setName] = useState('');
-	const [password, setPassword] = useState('');
-	const [showLoading, setShowLoading] = useState(false);
-	const [confirm_password, setConfirm_password] = useState('');
+		this.state = {
+			avatarSource: "",
+			avatarPath: '',
+			name: "",
+			phone: "",
+			email: "",
+			password: "",
+			confirm_password: "",
+			processing: false,
+		};
 
-	const register = async () => {
-		if (email == '' || name == '' || password == '' || confirm_password == "") {
-			Alert.alert('Error', "You've miseed something. Please check. ")
-		}
-		else if (password != confirm_password) {
-			Alert.alert("Error", "Password don't match. Please Try Again ");
-		}
-		else {
-			setShowLoading(true);
-			try {
-				const doRegister = await auth().createUserWithEmailAndPassword(email, password);
-				setShowLoading(false);
-				if (doRegister.user) {
-					navigation.navigate('home');
-				}
-			} catch (e) {
-				setShowLoading(false);
-				Alert.alert(
-					e.message
-				);
+		this.handleImageUpload = this.handleImageUpload.bind(this);
+	}
+
+	handleImageUpload() {
+		ImagePicker.showImagePicker({
+			title: "Select Avatar",
+			tintColor: Theme.text,
+			storageOptions: {
+				privateDirectory: true, // Used the Storage/android/data directory to private store images
+			},
+		}, (response) => {
+			console.log("Response = ", response);
+
+			if (response.didCancel) {
+				console.log("User cancelled image picker");
 			}
-		}
-	};
-	return (
-		<SafeAreaInsetsContext.Consumer>
-			{(insets) => (
-				<ScrollView style={{ flex: 1, backgroundColor: Theme.bright, }}>
-					<LinearGradient
-						colors={[Theme.gradient.start, Theme.gradient.end]}
-						style={[styles.headerContainer, { paddingTop: insets.top, }]}
-					>
-						<AppText style={styles.screenTitle}>Join us!</AppText>
-					</LinearGradient>
-					<View style={[styles.formContainer, { paddingBottom: insets.bottom + 20 * Layout.ratio }]}>
-						<View style={styles.avatarContainer}>
-							<Image
-								source={require("../assets/img/avatar-placeholder.png")}
-								style={styles.defaultAvatar}
-							/>
-						</View>
-						<FormField
-							style={styles.formField}
-							icon={
-								<Image
-									source={require("../assets/img/avatar-placeholder.png")}
-									style={styles.formFieldIcon}
-								/>
-							}
-							secureTextEntry={false}
-							onChangeText={setName}
-							value={name}
-							placeholder="Full Name"
-						/>
-						<FormField
-							style={styles.formField}
-							icon={
-								<Image
-									source={require("../assets/img/mail.png")}
-									style={[styles.formFieldIcon, { width: 20 * Layout.ratio }]}
-								/>
-							}
-							secureTextEntry={false}
-							onChangeText={setEmail}
-							value={email}
-							placeholder="Email"
-						/>
-						<FormField
-							style={styles.formField}
-							icon={
-								<Image
-									source={require("../assets/img/password.png")}
-									style={styles.formFieldIcon}
-								/>
-							}
-							secureTextEntry={true}
-							onChangeText={setPassword}
-							value={password}
-							placeholder="Password"
-						/>
-						<FormField
-							style={styles.formField}
-							icon={
-								<Image
-									source={require("../assets/img/password.png")}
-									style={styles.formFieldIcon}
-								/>
-							}
-							secureTextEntry={true}
-							onChangeText={setConfirm_password}
-							value={confirm_password}
-							placeholder="Confirm password"
-						/>
-						<Button
-							style={styles.submitButton}
-							label="Register"
-							onPress={() => register()}
-						/>
-						<View style={styles.horizontalBar} />
-						<View style={styles.footerContainer}>
-							<AppText style={styles.footerText}>
-								Already a member?
-								</AppText>
-							<AppText
-								style={styles.footerLink}
-								onPress={() => { navigation.navigate('login') }}
-							>
-								Login here
-								</AppText>
-						</View>
-					</View>
-					{showLoading &&
-						<View style={styles.activity}>
-							<ActivityIndicator size="large" color="#0000ff" />
-						</View>
-					}
-				</ScrollView>
-			)}
-		</SafeAreaInsetsContext.Consumer>
-	);
-}
+			else if (response.error) {
+				console.log("ImagePicker Error: ", response.error);
+				Alert.alert("Error", "Failed to pick image.");
+			}
+			else {
+				this.setState({
+					avatarPath: response.path,
+            		avatarSource: response.uri,
+				});
+			}
+		});
+	}
 
-register.navigationOptions = ({ navigation }) => ({
-	title: 'Register',
-	headerShown: false,
-});
+	async handleRegister() {
+		const {
+			authenticateUser,
+		} = this.props;
+
+		const signInMethod = "EMAIL";
+
+		const data = {
+			...this.state,
+			signInMethod,
+		};
+
+		this.setState({ processing: true });
+		auth().createUserWithEmailAndPassword(this.state.email, this.state.password);
+        await signUp(data, authenticateUser, this.props.navigation);
+		this.setState({ processing: false });
+	}
+
+	render(){
+		return (
+			<SafeAreaInsetsContext.Consumer>
+				{(insets) => (
+					<ScrollView style={{ flex: 1, backgroundColor: Theme.bright, }}>
+						<LinearGradient
+							colors={[Theme.gradient.start, Theme.gradient.end]}
+							style={[styles.headerContainer, { paddingTop: insets.top, }]}
+						>
+							<AppText style={styles.screenTitle}>Register</AppText>
+						</LinearGradient>
+						<View style={[styles.formContainer, { paddingBottom: insets.bottom + 20 * Layout.ratio }]}>
+							<View style={styles.avatarContainer}>
+								{this.state.avatarSource ?
+									<Image
+										source={{ uri: this.state.avatarSource}}
+										style={styles.avatar}
+									/> :
+									<Image
+										source={require("../assets/img/avatar-placeholder.png")}
+										style={styles.defaultAvatar}
+									/>
+								}
+								<TouchableOpacity
+									style={styles.uploadButton}
+									onPress={() => this.handleImageUpload()}
+								>
+									<AppText style={styles.uploadText}>Add Photo</AppText>
+								</TouchableOpacity>
+							</View>
+							<FormField
+								style={styles.formField}
+								icon={
+									<Image
+										source={require("../assets/img/avatar-placeholder.png")}
+										style={styles.formFieldIcon}
+									/>
+								}
+								secureTextEntry={false}
+								onChangeText={(text) => this.setState({ name: text })}
+								value={this.state.name}
+								placeholder="Full Name"
+							/>
+							<FormField
+								style={styles.formField}
+								icon={
+									<Image
+										source={require("../assets/img/phone.png")}
+										style={styles.formFieldIcon}
+									/>
+								}
+								keyboardType="number-pad"
+								secureTextEntry={false}
+								onChangeText={(text) => this.setState({ phone: text })}
+								value={this.state.phone}
+								placeholder="Phone no."
+							/>
+							<FormField
+								style={styles.formField}
+								icon={
+									<Image
+										source={require("../assets/img/mail.png")}
+										style={[styles.formFieldIcon, { width: 20 * Layout.ratio }]}
+									/>
+								}
+								secureTextEntry={false}
+								onChangeText={(text) => this.setState({ email: text })}
+								value={this.state.email}
+								placeholder="Email"
+							/>
+							<FormField
+								style={styles.formField}
+								icon={
+									<Image
+										source={require("../assets/img/password.png")}
+										style={styles.formFieldIcon}
+									/>
+								}
+								secureTextEntry={true}
+								onChangeText={(text) => this.setState({ password: text })}
+								value={this.state.password}
+								placeholder="Password"
+							/>
+							<FormField
+								style={styles.formField}
+								icon={
+									<Image
+										source={require("../assets/img/password.png")}
+										style={styles.formFieldIcon}
+									/>
+								}
+								secureTextEntry={true}
+								onChangeText={(text) => this.setState({ confirm_password: text })}
+								value={this.state.confirm_password}
+								placeholder="Confirm password"
+							/>
+							<Button
+								style={styles.submitButton}
+								label="Register"
+								onPress={() => this.handleRegister()}
+							/>
+							<View style={styles.horizontalBar} />
+							<View style={styles.footerContainer}>
+								<AppText style={styles.footerText}>
+									Already a member?
+								</AppText>
+								<AppText
+									style={styles.footerLink}
+									onPress={() => { this.props.navigation.jumpTo('Login') }}
+								>
+									Login here
+									</AppText>
+							</View>
+						</View>
+						{this.state.processing &&
+							<View style={styles.activity}>
+								<ActivityIndicator size="large" color="#0000ff" />
+							</View>
+						}
+					</ScrollView>
+				)}
+			</SafeAreaInsetsContext.Consumer>
+		);
+	}
+}
 
 const styles = StyleSheet.create({
 	headerContainer: {
 		alignItems: "center",
-		height: 190 * Layout.ratio,
+		height: 210 * Layout.ratio,
 	},
 	screenTitle: {
-		marginTop: 40 * Layout.ratio,
+		marginTop: 30 * Layout.ratio,
 		fontSize: FontSize[30],
 		fontWeight: "bold",
 		color: Theme.bright,
@@ -201,7 +258,7 @@ const styles = StyleSheet.create({
 		position: "absolute",
 		bottom: 0,
 		width: "100%",
-		paddingBottom: 4 * Layout.ratio,
+		paddingBottom: 5 * Layout.ratio,
 		justifyContent: "center",
 		alignItems: "center",
 		backgroundColor: "rgba(0, 0, 0, .7)",
@@ -258,7 +315,7 @@ const styles = StyleSheet.create({
 		width: 10 * 500 / 700 * Layout.ratio,
 	},
 	activity: {
-		position: 'absolute',
+		//position: 'absolute',
 		left: 0,
 		right: 0,
 		top: 0,
@@ -267,3 +324,5 @@ const styles = StyleSheet.create({
 		justifyContent: 'center'
 	},
 });
+
+export default bind(register);

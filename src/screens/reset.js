@@ -35,11 +35,11 @@ export default function reset({ navigation }) {
 				await auth().sendPasswordResetEmail(email);
 				setShowLoading(false);
 				Alert.alert("Attention", " Email has been send successfully.");
-				navigation.navigate('login');
+				navigation.jumpTo('Login');
 			} catch (e) {
 				setShowLoading(false);
 				Alert.alert(
-					e.message
+					"Attention",e.message
 				);
 			}
 		}
@@ -90,7 +90,7 @@ export default function reset({ navigation }) {
 								</AppText>
 							<AppText
 								style={styles.footerLink}
-								onPress={() => { navigation.navigate('register') }}
+								onPress={() => { navigation.jumpTo('Register') }}
 							>
 								Register here Again.
 								</AppText>
@@ -101,7 +101,7 @@ export default function reset({ navigation }) {
 								</AppText>
 							<AppText
 								style={styles.footerLink}
-								onPress={() => { navigation.navigate('login') }}
+								onPress={() => { navigation.jumpTo('Login') }}
 							>
 								Go to Login.
 								</AppText>
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
 		color: Theme.primary,
 	},
 	activity: {
-		position: 'absolute',
+		//position: 'absolute',
 		left: 0,
 		right: 0,
 		top: 0,
